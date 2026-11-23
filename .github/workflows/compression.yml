@@ -11,6 +11,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: compression-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   compression:
     runs-on: ubuntu-latest

@@ -113,7 +113,9 @@ async function run({ action, file, buffer, name, watch = false }) {
     const pkg = await train(input, event => send({ type: 'progress', ...event }));
     pkg.meta.sha256 = header.sha256;
     const model = D.buildModel(pkg, D.decodeBlobs(pkg));
-    const plan = D.segmentPlan(pkg.meta.n_chunks, Math.min(32, pkg.meta.n_chunks)), streams = [];
+    // Small inputs need one stream, not dozens of independent stream headers.
+    const segments = Math.min(32, Math.max(1, Math.ceil(input.length / 65536)));
+    const plan = D.segmentPlan(pkg.meta.n_chunks, Math.min(segments, pkg.meta.n_chunks)), streams = [];
     let lastProgress = -1000;
     for (const segment of plan) {
       streams.push({ ...segment, bytes: D.encodeSegment(model, input, segment.first, segment.count, chunk => {
