@@ -4,11 +4,11 @@ import { asset } from '../lib/paths';
 const title = 'Neuralzip · Lossless neural text compression';
 const description = 'Compress text with a tiny neural model. Restore every original byte. Open source, with a playground that runs entirely in your browser.';
 const socialImage = {
-  url: asset('social/neuralzip-card-v1.png'),
+  url: asset('social/neuralzip-card-v2.png'),
   width: 1200,
   height: 630,
   type: 'image/png',
-  alt: 'Neuralzip. Neural compression. Every byte back. Open source and runs in your browser.',
+  alt: 'Neuralzip: a 3.12 MB text file becomes a 791 KB archive, including model weights and stream. Five-book research example, 3.94× smaller with exact bytes restored.',
 };
 
 export const metadata = {
