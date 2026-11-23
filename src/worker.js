@@ -1,5 +1,6 @@
 import './codec/decoder.js';
 import './codec/archive.js';
+import { CHUNK_LENGTH } from '../lib/training-policy.js';
 
 const A = globalThis.LCPArchive, D = globalThis.BookDecoder;
 // Browser buffers and the archive's chunk-address space provide the technical bounds.
@@ -72,7 +73,7 @@ async function restoreNeural(header, payload, stage = 'decoding', watch = false)
 async function run({ action, file, buffer, name, watch = false }) {
   const started = performance.now();
   send({ type: 'progress', stage: 'reading', progress: 0 });
-  if (action === 'encode' && file?.size > 60 * MAX_CHUNKS) {
+  if (action === 'encode' && file?.size > CHUNK_LENGTH * MAX_CHUNKS) {
     throw new Error('This file exceeds the current archive format’s chunk-address space. Choose an excerpt.');
   }
   if (action === 'decode' && file) {
@@ -99,7 +100,7 @@ async function run({ action, file, buffer, name, watch = false }) {
     return;
   }
   if (action !== 'encode') throw new Error('Choose Encode or Decode.');
-  if (Math.ceil(input.length / 60) > MAX_CHUNKS) throw new Error('This file exceeds the archive format’s chunk-address space. Choose an excerpt.');
+  if (Math.ceil(input.length / CHUNK_LENGTH) > MAX_CHUNKS) throw new Error('This file exceeds the archive format’s chunk-address space. Choose an excerpt.');
   await validateText(input);
   const header = { format: 'neurzip/1', codec: 'neural', name: name || file.name,
     size: input.length, sha256: await digest(input) };

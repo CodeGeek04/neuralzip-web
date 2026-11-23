@@ -20,6 +20,12 @@ npm run preview
 
 `out/` contains the deployable website. No Python, backend, API key or external model is required to build or use the site. TensorFlow.js loads only when training begins; deterministic restoration runs in a single worker. Upload UTF-8 files, paste text, or choose an encoding sample. Decode includes a book library and a watch reader with actual chunk-by-chunk reconstruction, pause/resume and reveal speed. Inputs over 1 MB show guidance instead of a hard cutoff; there is no total-job timeout. Browser memory and archive-format capacity still bound practical sizes. Encoding is always lossless. Browser training ends automatically when learning stabilizes, without a wall-clock cutoff or a user-selected quality setting. Every archive is decoded and verified before download. Short inputs may grow because of model overhead. Current complete-archive results and sample models are included.
 
+## Browser learning
+
+Model capacity adapts to input size so short files do not carry a book-sized model. Book-sized inputs use the Python CLI's four-layer architecture and 252-byte context. A shuffled sampler visits every chunk in each pass. Convergence is measured across up to 64 chunks spanning the file, with complete coverage of files containing at most 64 chunks. Training includes a refinement phase using the q8 matrices and bf16 values that are actually saved, and checkpoints are selected by their stored-weight prediction cost. Neither phase uses an elapsed-time cutoff. The archive format and exact reconstruction remain unchanged. Small or difficult inputs can still grow.
+
+The dedicated `Compare fresh browser compression` workflow compares the released trainer against the current trainer on an 11 KiB Alice excerpt and complete Alice. It measures the entire archive and independently decodes every byte. These longer learning runs execute on GitHub's runner, separately from ordinary UI tests.
+
 ## Host
 
 **Vercel:** import this repository, keep Root Directory at the repository root, and deploy. The included `vercel.json` selects Next.js, `npm run build`, and automatically handles the static export. Keep the Output Directory setting at its Next.js default; do not override it with `out`. The prepared Python wheel and source downloads are already included. Vercel CLI deployment: `vercel --prod`.

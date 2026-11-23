@@ -1,0 +1,58 @@
+name: Compare fresh browser compression
+on:
+  push:
+    paths:
+      - 'src/neural.js'
+      - 'src/training-math.js'
+      - 'src/worker.js'
+      - 'lib/training-policy.js'
+      - 'tests/compression.spec.js'
+      - '.github/workflows/compression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NEURALZIP_COMPRESSION_CHECKS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chrome
+      - name: Measure the released browser trainer
+        env:
+          NEURALZIP_BASELINE: '1'
+          NEURALZIP_COMPRESSION_REPORT: ${{ runner.temp }}/browser-before.json
+        run: |
+          baseline_dir="${RUNNER_TEMP}/neuralzip-before"
+          mkdir -p "$baseline_dir"
+          git archive b3f0694 | tar -x -C "$baseline_dir"
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$baseline_dir/node_modules"
+          cp tests/compression.spec.js "$baseline_dir/tests/compression.spec.js"
+          cd "$baseline_dir"
+          npm run build
+          npx playwright test tests/compression.spec.js
+      - name: Verify improved compression and exact restoration
+        env:
+          NEURALZIP_COMPRESSION_REPORT: ${{ runner.temp }}/browser-after.json
+          NEURALZIP_BASELINE_REPORT: ${{ runner.temp }}/browser-before.json
+        run: |
+          npm run test:policy
+          npm run build
+          npx playwright test tests/compression.spec.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-compression-comparison
+          path: |
+            ${{ runner.temp }}/browser-before.json
+            ${{ runner.temp }}/browser-after.json
+            test-results/
