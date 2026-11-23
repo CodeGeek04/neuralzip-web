@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 const root = path.resolve(import.meta.dirname, '..');
-const python = process.env.NEURZIP_PYTHON || 'python3';
+const python = process.env.NEURALZIP_PYTHON || 'python3';
 const fixture = name => path.join(root, 'tests/fixtures', name);
 const bytes = Buffer.from('\ufeff  Hello, नमस्ते 🌍\r\nkeep\tthese spaces \r\n');
 async function downloaded(page, info) {
@@ -37,7 +37,7 @@ test('browser trains a model, keeps a larger archive and restores exactly in Pyt
   const header = JSON.parse(output.bytes.subarray(12, 12 + output.bytes.readUInt32LE(8)));
   expect(header.codec).toBe('neural'); expect(header.model.tensors.length).toBeGreaterThan(0);
   expect(output.bytes.length).toBeGreaterThan(bytes.length);
-  const restored = execFileSync(python, ['-c', 'import base64,sys; from neurzip import decode; print(base64.b64encode(decode(sys.argv[1])).decode())', output.file]);
+  const restored = execFileSync(python, ['-c', 'import base64,sys; from neuralzip import decode; print(base64.b64encode(decode(sys.argv[1])).decode())', output.file]);
   expect(Buffer.from(restored.toString().trim(), 'base64')).toEqual(bytes);
   await audit(page);
   expect(errors).toEqual([]); expect(remote).toEqual([]);
@@ -80,7 +80,7 @@ test('complete research model restores every Alice byte and previews text', asyn
   expect((await downloaded(page, info)).bytes).toEqual(await readFile(path.join(root, 'public/samples/alice.txt')));
   await page.getByText('Preview restored text', { exact: true }).click();
   await expect(page.locator('#result-preview')).toContainText('Alice');
-  if (process.env.NEURZIP_SCREENSHOT) {
+  if (process.env.NEURALZIP_SCREENSHOT) {
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: path.join(root, 'docs/playground.png'), fullPage: true });
   }
@@ -139,7 +139,7 @@ test('keyboard navigation, desktop/mobile layout and all-page accessibility', as
 });
 
 test('package, source, format and current model measurements are downloadable', async ({ request }) => {
-  for (const name of ['downloads/neurzip-0.3.0-py3-none-any.whl','downloads/neurzip-0.3.0.tar.gz','FORMAT.txt','LICENSE.txt','benchmarks.json']) {
+  for (const name of ['downloads/neuralzip-0.3.1-py3-none-any.whl','downloads/neuralzip-0.3.1.tar.gz','FORMAT.txt','LICENSE.txt','benchmarks.json']) {
     const response = await request.get('/' + name);
     expect(response.ok(), name).toBe(true);
     expect((await response.body()).length).toBeGreaterThan(100);

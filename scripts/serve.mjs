@@ -29,5 +29,5 @@ const server = http.createServer(async (request, response) => {
     else createReadStream(file).on('error', () => response.destroy()).pipe(response);
   } catch { response.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found'); }
 });
-server.listen(port, '127.0.0.1', () => console.log(`Neurzip: http://127.0.0.1:${port}${base}/`));
+server.listen(port, '127.0.0.1', () => console.log(`Neuralzip: http://127.0.0.1:${port}${base}/`));
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.close(() => process.exit(0)));

@@ -1,4 +1,4 @@
-/* neurzip v1. Shared validation and neural codec for Python and browsers. */
+/* neuralzip v1. Shared validation and neural codec for Python and browsers. */
 (function (root) {
   "use strict";
   const MAGIC = [78, 69, 85, 82, 90, 73, 80, 49];
@@ -82,7 +82,7 @@
     return header;
   }
   function parseRaw(bytes, maxOutput = 16 << 20) {
-    if (bytes.length < 12 || MAGIC.some((v, i) => bytes[i] !== v)) fail("This is not a Neurzip model archive (.nzip).");
+    if (bytes.length < 12 || MAGIC.some((v, i) => bytes[i] !== v)) fail("This is not a Neuralzip model archive (.nzip).");
     const n = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(8, true);
     if (!n || n > MAX_HEADER || 12 + n > bytes.length) fail("Invalid or truncated archive header.");
     let header;

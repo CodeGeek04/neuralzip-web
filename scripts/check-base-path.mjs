@@ -1,9 +1,9 @@
-// Run after NEXT_PUBLIC_BASE_PATH=/neurzip npm run build.
+// Run after NEXT_PUBLIC_BASE_PATH=/neuralzip npm run build.
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const base = process.env.NEXT_PUBLIC_BASE_PATH || '/neurzip';
+const base = process.env.NEXT_PUBLIC_BASE_PATH || '/neuralzip';
 const origin = 'http://127.0.0.1:4174';
 const server = spawn(process.execPath, ['scripts/serve.mjs','--port','4174'], {env:{...process.env,NEXT_PUBLIC_BASE_PATH:base},stdio:'pipe'});
 let browser;
@@ -27,7 +27,7 @@ try {
   const restoredPromise=page.waitForEvent('download');await page.locator('#download-button').click();
   const restored=await restoredPromise;
   assert.equal((await readFile(await restored.path())).toString(),'A model under a subdirectory.\r\n');
-  for(const file of ['docs/','benchmarks/','downloads/neurzip-0.3.0-py3-none-any.whl','downloads/neurzip-0.3.0.tar.gz'])assert.ok((await page.request.get(origin+base+'/'+file)).ok(),file);
+  for(const file of ['docs/','benchmarks/','downloads/neuralzip-0.3.1-py3-none-any.whl','downloads/neuralzip-0.3.1.tar.gz'])assert.ok((await page.request.get(origin+base+'/'+file)).ok(),file);
   assert.deepEqual(failed,[]);
   console.log('Subdirectory export: training, lazy chunks, nested workers, exact restoration, pages and downloads passed.');
 } finally {await browser?.close();server.kill('SIGTERM');}

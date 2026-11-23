@@ -1,4 +1,4 @@
-name: Verify Neurzip website
+name: Verify Neuralzip website
 on:
   push:
   pull_request:
@@ -8,7 +8,7 @@ jobs:
   browser:
     runs-on: ubuntu-latest
     env:
-      NEURZIP_PYTHON: python
+      NEURALZIP_PYTHON: python
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,14 +19,14 @@ jobs:
           node-version: '22'
           cache: npm
       - run: python -m pip install 'torch>=2.9' --index-url https://download.pytorch.org/whl/cpu
-      - run: python -m pip install neurzip
+      - run: python -m pip install neuralzip
       - run: npm ci
       - run: npx playwright install --with-deps chrome
       - run: npm run build
       - run: npm test
       - name: Check subdirectory deployment
         env:
-          NEXT_PUBLIC_BASE_PATH: /neurzip
+          NEXT_PUBLIC_BASE_PATH: /neuralzip
         run: npm run build && node scripts/check-base-path.mjs
       - uses: actions/upload-artifact@v4
         if: failure()

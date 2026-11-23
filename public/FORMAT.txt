@@ -1,6 +1,7 @@
-# Neurzip archive format, version 1
+# Neuralzip archive format, version 1
 
-A `.nzip` file is a raw binary envelope:
+A `.nzip` file is a raw binary envelope. Neuralzip retains the original `NEURZIP1` magic and `neurzip/1` identifier so previously published archives remain compatible:
+
 
 | Field | Encoding |
 | --- | --- |

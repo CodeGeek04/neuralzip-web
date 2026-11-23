@@ -10,7 +10,7 @@ People who want to make a text file smaller and restore it later without underst
 
 ## Product Purpose
 
-Neurzip makes exact text compression approachable. Encoding produces one portable archive. Decoding restores original bytes and verifies them. The browser and Python library share a format. Every nonempty archive stores learned model weights and an arithmetic-coded stream. Explain training time and model overhead directly. Success means someone can complete a round trip without reading a research paper.
+Neuralzip makes exact text compression approachable. Encoding produces one portable archive. Decoding restores original bytes and verifies them. The browser and Python library share a format. Every nonempty archive stores learned model weights and an arithmetic-coded stream. Explain training time and model overhead directly. Success means someone can complete a round trip without reading a research paper.
 
 ## Brand Personality
 
