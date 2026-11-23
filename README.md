@@ -4,7 +4,7 @@ The independent Next.js playground for [Neurzip](https://github.com/CodeGeek04/n
 
 ## Run
 
-Use Node.js 22 or newer:
+Use Node.js 22:
 
 ```bash
 npm ci
