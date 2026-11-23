@@ -8,16 +8,16 @@ on:
       - 'lib/training-policy.js'
       - 'tests/compression.spec.js'
       - 'tests/training-math.spec.js'
+      - 'tests/fixtures/browser-before.json'
       - '.github/workflows/compression.yml'
   workflow_dispatch:
     inputs:
-      baseline_run_id:
-        description: 'Reuse a verified baseline report from this run (falls back to measuring it)'
-        default: '45247829351'
-        type: string
+      measure_baseline:
+        description: 'Re-measure the released trainer instead of using its recorded reference'
+        default: false
+        type: boolean
 permissions:
   contents: read
-  actions: read
 concurrency:
   group: compression-${{ github.ref }}
   cancel-in-progress: true
@@ -37,22 +37,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chrome
-      - name: Reuse completed reference measurements
-        id: reference
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BASELINE_RUN_ID: ${{ inputs.baseline_run_id || '45247829351' }}
-        run: |
-          reference_dir="${RUNNER_TEMP}/neuralzip-reference"
-          if gh run download "$BASELINE_RUN_ID" --name browser-compression-comparison --dir "$reference_dir"; then
-            reference_report=$(rg --files "$reference_dir" -g browser-before.json | head -n 1)
-            if [ -n "$reference_report" ]; then
-              cp "$reference_report" "${RUNNER_TEMP}/browser-before.json"
-              echo 'found=true' >> "$GITHUB_OUTPUT"
-            fi
-          fi
+      - name: Load measured reference
+        if: inputs.measure_baseline != true
+        run: cp tests/fixtures/browser-before.json "${RUNNER_TEMP}/browser-before.json"
       - name: Measure the released browser trainer
-        if: steps.reference.outputs.found != 'true'
+        if: inputs.measure_baseline == true
         env:
           NEURALZIP_BASELINE: '1'
           NEURALZIP_COMPRESSION_REPORT: ${{ runner.temp }}/browser-before.json

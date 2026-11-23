@@ -64,14 +64,18 @@ test.describe('fresh browser compression', () => {
       const row = { name, originalBytes: input.length, archiveBytes: archive.length,
         weightsBytes: result.weightsBytes, streamBytes: result.streamBytes, settingsBytes: result.settingsBytes,
         ratio: input.length / archive.length, seconds: result.seconds, config: model.config,
-        training: result.training, exactBytesVerified: true };
+        training: result.training, sha256: header.sha256, exactBytesVerified: true };
       results.push(row);
       console.log(JSON.stringify(row));
       await writeFile(info.outputPath(name + '.nzip'), archive);
       if (!baselineRun) {
         expect(archive.length).toBeLessThan(input.length);
         const previous = baseline.find(row => row.name === name);
-        if (previous) expect(archive.length).toBeLessThan(previous.archiveBytes);
+        if (previous) {
+          expect(previous.originalBytes).toBe(input.length);
+          expect(previous.sha256).toBe(header.sha256);
+          expect(archive.length).toBeLessThan(previous.archiveBytes);
+        }
       }
     });
   }
