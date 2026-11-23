@@ -53,7 +53,6 @@ export default function Workbench() {
   const [draft, setDraft] = useState('');
   const [sampleId, setSampleId] = useState('');
   const [metadata, setMetadata] = useState(null);
-  const [seconds, setSeconds] = useState('15');
   const [watch, setWatch] = useState(true);
   const [watchSession, setWatchSession] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -75,7 +74,7 @@ export default function Workbench() {
   const ready = pasted ? draft.length > 0 : !!file;
   const inputBytes = pasted ? pastedBytes : file?.size || 0;
   const restoredBytes = !encode && metadata ? metadata.size : inputBytes;
-  const predicted = estimate(encode ? inputBytes : restoredBytes, action, seconds, !encode && watch, metadata?.chunks || 0);
+  const predicted = estimate(encode ? inputBytes : restoredBytes, action, !encode && watch, metadata?.chunks || 0);
   const large = inputBytes > 1_000_000 || restoredBytes > 1_000_000;
   const lengthy = predicted.high > 120;
 
@@ -182,7 +181,7 @@ export default function Workbench() {
       };
       // Structured-clone the File handle. Its contents are read in the worker,
       // rather than allocating a second complete input buffer on the UI thread.
-      instance.postMessage({ action, name: selected.name, file: selected, seconds: Number(seconds), watch: !encode && watch });
+      instance.postMessage({ action, name: selected.name, file: selected, watch: !encode && watch });
     } catch (e) { setBusy(false); setProgress(null); setWatchSession(0); setError(e.message); }
   }
 
@@ -209,8 +208,8 @@ export default function Workbench() {
         {pasted && <div className="paste-panel"><label className="sr-only" htmlFor="paste-text">Text to encode</label><textarea id="paste-text" placeholder="Paste or type your text here…" value={draft} disabled={busy} spellCheck={false} aria-describedby="paste-note paste-size" onChange={event => { setDraft(event.target.value); if (result || error) clearResult(); }}/><div className="paste-meta"><span>pasted-text.txt</span><span id="paste-size">{format(pastedBytes)} · UTF-8</span></div><p id="paste-note">Encoded as UTF-8. Upload an existing file to preserve its original bytes and line endings.</p></div>}
         {source === 'samples' && <div className="sample-library"><p className="sample-intro">{encode ? 'Choose text to train a new model on your device.' : 'Finished models, ready to reconstruct. No training needed.'}</p><div className="sample-list" role="group" aria-label={encode ? 'Encoding samples' : 'Book samples'}>{samples.map(sample => <button key={sample.id} className="sample-row" disabled={busy} aria-pressed={sampleId === sample.id} onClick={() => loadSample(sample)}><span className="sample-book-icon"><DocumentIcon/></span><span className="sample-copy"><strong>{sample.title}</strong><span>{sample.author}{sample.detail ? ` · ${sample.detail}` : ''}</span></span><span className="sample-size">{sample.bytes ? format(sample.bytes) : 'Small text'}{sample.restoredBytes ? <small>{format(sample.restoredBytes)} restored</small> : null}</span></button>)}</div></div>}
         {!pasted && file && <div className="selected-file"><div><span className="selected-check" aria-hidden="true">✓</span><div><strong id="file-name">{file.name}</strong><span>{format(file.size)}{metadata ? ` · ${format(metadata.size)} restored` : ''}</span></div></div><button className="icon-button" disabled={busy} aria-label="Remove selected file" onClick={() => { setFile(null); setMetadata(null); setSampleId(''); clearResult(); if (fileInput.current) fileInput.current.value = ''; }}>×</button></div>}
-        {encode ? <div className="encode-options"><label htmlFor="training-budget">Training budget</label><select id="training-budget" disabled={busy} value={seconds} onChange={event => setSeconds(event.target.value)}><option value="15">15 seconds</option><option value="30">30 seconds</option><option value="60">60 seconds</option></select><p>Longer learning can help compression. Coding and verification take additional time.</p></div> : <div className="watch-option"><label><input type="checkbox" checked={watch} disabled={busy} onChange={event => setWatch(event.target.checked)}/><span><strong>Watch reconstruction</strong><small>See actual decoded chunks appear one at a time.</small></span></label></div>}
-        {ready && !busy && <div className={`job-estimate${large || lengthy ? ' estimate-warning' : ''}`} id="job-estimate"><strong>{large ? 'A larger experiment' : lengthy ? 'This may take a while' : 'Estimated time'}<span>{predicted.label}</span></strong><p>{large || lengthy ? 'Large jobs can take many minutes and use more browser memory. Keep this tab open; cancel whenever you need to.' : 'A rough, device-dependent estimate. Progress will refine it as work completes.'}</p>{encode && inputBytes > (16 << 20) && <p>Archives restoring more than 16 MiB currently need this browser decoder; Python 0.3.1 supports up to 16 MiB.</p>}</div>}
+        {encode ? <p className="method-note automatic-learning">Encoding learns a model automatically, then verifies the complete round trip. Every original byte is preserved.</p> : <div className="watch-option"><label><input type="checkbox" checked={watch} disabled={busy} onChange={event => setWatch(event.target.checked)}/><span><strong>Watch reconstruction</strong><small>See actual decoded chunks appear one at a time.</small></span></label></div>}
+        {ready && !busy && <div className={`job-estimate${large || lengthy ? ' estimate-warning' : ''}`} id="job-estimate"><strong>{large ? 'A larger experiment' : lengthy ? 'This may take a while' : encode ? 'Estimated coding time' : 'Estimated time'}<span>{predicted.label}</span></strong><p>{encode ? 'Coding estimate only. Automatic learning finishes when it stabilizes, with no time cutoff. Every byte is verified.' : 'A rough, device-dependent estimate. Progress will refine it as work completes.'}</p>{(large || lengthy) && <p>Large jobs can take many minutes and use more browser memory. Keep this tab open; cancel whenever you need to.</p>}{encode && inputBytes > (16 << 20) && <p>Archives restoring more than 16 MiB currently need this browser decoder; Python 0.3.1 supports up to 16 MiB.</p>}</div>}
         <div className="action-row"><button className="button primary run-button" disabled={busy || !ready} onClick={runJob}>{busy ? encode ? 'Encoding…' : 'Decoding…' : encode ? 'Encode file' : 'Decode archive'}</button>{busy && <button className="button secondary" onClick={cancel}>Cancel</button>}<span>{busy ? 'You can cancel at any time.' : 'Files stay on your device.'}</span></div>
         {error && <div className="error-message" id="error-message" role="alert">{error}</div>}
       </div>

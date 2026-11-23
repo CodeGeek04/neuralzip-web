@@ -32,7 +32,7 @@ test('real training of pasted text restores exactly in Python with no remote req
   await expect(page.locator('#progress-detail')).toContainText('Elapsed');
   const initial = await page.locator('#progress-detail').textContent();
   await expect.poll(() => page.locator('#progress-detail').textContent()).not.toBe(initial);
-  await expect(page.locator('#output-result')).toBeVisible({ timeout: 90000 });
+  await expect(page.locator('#output-result')).toBeVisible({ timeout: 300000 });
   await expect(page.locator('#result-note')).toContainText('Model overhead');
   const output = await downloaded(page, info);
   expect(output.bytes.subarray(0,8).toString()).toBe('NEURZIP1');
@@ -76,6 +76,8 @@ test('ordinary decoding works with watch disabled', async ({ page }, info) => {
 
 test('pasted UTF-8 byte counts and large-file guidance impose no 1 MB cutoff', async ({ page }) => {
   await page.goto('/');
+  await expect(page.locator('#training-budget')).toHaveCount(0);
+  await expect(page.getByText('Training budget', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Paste text', exact: true }).click();
   await page.getByLabel('Text to encode', { exact: true }).fill('नमस्ते 🌍');
   await expect(page.locator('#paste-size')).toContainText(Buffer.byteLength('नमस्ते 🌍').toLocaleString()+' B');

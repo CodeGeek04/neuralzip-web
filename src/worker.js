@@ -69,7 +69,7 @@ async function restoreNeural(header, payload, stage = 'decoding', watch = false)
   return out;
 }
 
-async function run({ action, file, buffer, name, seconds = 15, watch = false }) {
+async function run({ action, file, buffer, name, watch = false }) {
   const started = performance.now();
   send({ type: 'progress', stage: 'reading', progress: 0 });
   if (action === 'encode' && file?.size > 60 * MAX_CHUNKS) {
@@ -109,7 +109,7 @@ async function run({ action, file, buffer, name, seconds = 15, watch = false }) 
   } else {
     send({ type: 'progress', stage: 'preparing', progress: 0 });
     const { train } = await import('./neural.js');
-    const pkg = await train(input, seconds, event => send({ type: 'progress', ...event }));
+    const pkg = await train(input, event => send({ type: 'progress', ...event }));
     pkg.meta.sha256 = header.sha256;
     const model = D.buildModel(pkg, D.decodeBlobs(pkg));
     const plan = D.segmentPlan(pkg.meta.n_chunks, Math.min(32, pkg.meta.n_chunks)), streams = [];

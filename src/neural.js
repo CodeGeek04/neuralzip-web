@@ -1,5 +1,6 @@
 // Loaded on demand inside a worker. Training stays on the visitor's device.
 import * as tf from '@tensorflow/tfjs';
+import { CHECK_EVERY, TrainingConvergence } from '../lib/training-policy';
 
 const D = 24, H = 1, F = 72, LAYERS = 2, CHUNK = 60, T = CHUNK + 3;
 const bits = new DataView(new ArrayBuffer(4));
@@ -14,8 +15,7 @@ const concat = parts => {
   let pos = 0; for (const x of parts) { out.set(x, pos); pos += x.length; } return out;
 };
 
-export async function train(bytes, seconds, onProgress) {
-  if (!Number.isFinite(seconds) || seconds <= 0 || seconds > 120) throw new Error('Choose a training budget up to 120 seconds.');
+export async function train(bytes, onProgress) {
   onProgress({ stage: 'preparing', progress: 0 });
   try { await tf.setBackend('webgl'); } catch { await tf.setBackend('cpu'); }
   await tf.ready();
@@ -68,7 +68,9 @@ export async function train(bytes, seconds, onProgress) {
   };
   const nChunks = Math.ceil(bytes.length / CHUNK), batch = Math.min(8, nChunks);
   const opt = tf.train.adam(0.003), started = performance.now();
-  let steps = 0, lossValue = 8, last = -1000;
+  let steps = 0, lossValue = 8, last = -1000, bestWeights = null;
+  const convergence = new TrainingConvergence();
+  let finished = false;
   try {
     do {
       const inputs = new Int32Array(batch * T), targets = new Int32Array(batch * T), weights = new Float32Array(batch * T);
@@ -81,19 +83,40 @@ export async function train(bytes, seconds, onProgress) {
           if (j < length - 1) inputs[b * T + 4 + j] = bytes[c * CHUNK + j];
         }
       }
-      const loss = opt.minimize(() => tf.tidy(() => {
-        const x = tf.tensor2d(inputs, [batch, T], 'int32');
-        const labels = tf.oneHot(tf.tensor1d(targets, 'int32'), 257);
-        return tf.losses.softmaxCrossEntropy(labels, forward(x).reshape([-1, 257]), tf.tensor1d(weights));
-      }), true, Object.values(vars));
+      const objective = (sampleInputs, sampleTargets, sampleWeights) => tf.tidy(() => {
+        const x = tf.tensor2d(sampleInputs, [batch, T], 'int32');
+        const labels = tf.oneHot(tf.tensor1d(sampleTargets, 'int32'), 257);
+        return tf.losses.softmaxCrossEntropy(labels, forward(x).reshape([-1, 257]), tf.tensor1d(sampleWeights));
+      });
+      const loss = opt.minimize(() => objective(inputs, targets, weights), true, Object.values(vars));
       lossValue = (await loss.data())[0] / Math.LN2; loss.dispose(); steps++;
+      if (steps % CHECK_EVERY === 0) {
+        const fixedInputs = new Int32Array(batch * T), fixedTargets = new Int32Array(batch * T), fixedWeights = new Float32Array(batch * T);
+        for (let b = 0; b < batch; b++) {
+          const c = Math.floor(b * nChunks / batch), length = Math.min(CHUNK, bytes.length - c * CHUNK);
+          fixedInputs.set([256, c >>> 16, (c >>> 8) & 255, c & 255], b * T);
+          for (let j = 0; j < length; j++) {
+            fixedTargets[b * T + 3 + j] = bytes[c * CHUNK + j]; fixedWeights[b * T + 3 + j] = 1;
+            if (j < length - 1) fixedInputs[b * T + 4 + j] = bytes[c * CHUNK + j];
+          }
+        }
+        const score = objective(fixedInputs, fixedTargets, fixedWeights);
+        const measured = (await score.data())[0] / Math.LN2; score.dispose();
+        const status = convergence.observe(measured);
+        if (status.improved) {
+          if (bestWeights) Object.values(bestWeights).forEach(tensor => tensor.dispose());
+          bestWeights = Object.fromEntries(Object.entries(vars).map(([name, value]) => [name, value.clone()]));
+        }
+        finished = status.done;
+      }
       const elapsed = (performance.now() - started) / 1000;
-      if (elapsed - last > 0.4) {
-        onProgress({ stage: 'training', progress: Math.min(1, elapsed / seconds), seconds: elapsed, steps, bitsPerByte: lossValue });
+      if (elapsed - last > 0.4 || finished) {
+        onProgress({ stage: 'training', elapsedSeconds: elapsed, steps, bitsPerByte: lossValue });
         last = elapsed;
       }
       await tf.nextFrame();
-    } while (performance.now() - started < seconds * 1000);
+    } while (!finished);
+    if (bestWeights) for (const [name, value] of Object.entries(vars)) value.assign(bestWeights[name]);
     let qOffset = 0, scaleOffset = 0, bfOffset = 0;
     for (const [name, variable] of Object.entries(vars)) {
       const data = await variable.data(), shape = variable.shape, numel = data.length;
@@ -120,6 +143,7 @@ export async function train(bytes, seconds, onProgress) {
       meta: { book_id: 0, chunk_len: CHUNK, n_chunks: nChunks, total_len: bytes.length, sha256: '' },
       tensors, fixes: [], weights_b64: b64(concat(bfParts)), qdata_b64: b64(concat(qParts)), scales_b64: b64(concat(scaleParts)) };
   } finally {
+    if (bestWeights) Object.values(bestWeights).forEach(tensor => tensor.dispose());
     opt.dispose(); Object.values(vars).forEach(v => v.dispose());
     cosine.dispose(); sine.dispose(); mask.dispose();
   }

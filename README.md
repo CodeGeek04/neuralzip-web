@@ -18,7 +18,7 @@ npm run build
 npm run preview
 ```
 
-`out/` contains the deployable website. No Python, backend, API key or external model is required to build or use the site. TensorFlow.js loads only when training begins; deterministic restoration runs in a single worker. Upload UTF-8 files, paste text, or choose an encoding sample. Decode includes a book library and a watch reader with actual chunk-by-chunk reconstruction, pause/resume and reveal speed. Inputs over 1 MB show guidance instead of a hard cutoff; there is no total-job timeout. Browser memory and archive-format capacity still bound practical sizes. Short inputs may grow because of model overhead. Current complete-archive results and sample models are included.
+`out/` contains the deployable website. No Python, backend, API key or external model is required to build or use the site. TensorFlow.js loads only when training begins; deterministic restoration runs in a single worker. Upload UTF-8 files, paste text, or choose an encoding sample. Decode includes a book library and a watch reader with actual chunk-by-chunk reconstruction, pause/resume and reveal speed. Inputs over 1 MB show guidance instead of a hard cutoff; there is no total-job timeout. Browser memory and archive-format capacity still bound practical sizes. Encoding is always lossless. Browser training ends automatically when learning stabilizes, without a wall-clock cutoff or a user-selected quality setting. Every archive is decoded and verified before download. Short inputs may grow because of model overhead. Current complete-archive results and sample models are included.
 
 ## Host
 

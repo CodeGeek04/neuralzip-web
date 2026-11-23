@@ -10,7 +10,8 @@
     "dev": "node scripts/build-workers.mjs && next dev --hostname 127.0.0.1",
     "build": "node scripts/build-workers.mjs && next build",
     "preview": "node scripts/serve.mjs",
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:policy": "node --test scripts/training-policy.test.mjs"
   },
   "dependencies": {
     "@tensorflow/tfjs": "4.22.0",

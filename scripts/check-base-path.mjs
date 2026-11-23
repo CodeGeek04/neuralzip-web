@@ -15,9 +15,8 @@ try {
   page.on('response',r=>{if(r.status()>=400)failed.push(r.status()+' '+r.url());});
   await page.goto(origin+base+'/');
   await page.locator('#file-input').setInputFiles({name:'path.txt',mimeType:'text/plain',buffer:Buffer.from('A model under a subdirectory.\r\n')});
-  await page.locator('#training-budget').selectOption('15');
   await page.getByRole('button',{name:'Encode file',exact:true}).click();
-  await page.locator('#output-result').waitFor({timeout:90000});
+  await page.locator('#output-result').waitFor({timeout:300000});
   const downloadPromise=page.waitForEvent('download');await page.locator('#download-button').click();
   const download=await downloadPromise;const archive=await readFile(await download.path());
   assert.equal(archive.subarray(0,8).toString(),'NEURZIP1');
@@ -29,5 +28,5 @@ try {
   assert.equal((await readFile(await restored.path())).toString(),'A model under a subdirectory.\r\n');
   for(const file of ['docs/','benchmarks/','downloads/neuralzip-0.3.1-py3-none-any.whl','downloads/neuralzip-0.3.1.tar.gz'])assert.ok((await page.request.get(origin+base+'/'+file)).ok(),file);
   assert.deepEqual(failed,[]);
-  console.log('Subdirectory export: training, lazy chunks, nested workers, exact restoration, pages and downloads passed.');
+  console.log('Subdirectory export: training, lazy chunks, worker decoding, exact restoration, pages and downloads passed.');
 } finally {await browser?.close();server.kill('SIGTERM');}
