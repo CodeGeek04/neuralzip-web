@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <title>Neuralzip: neural compression, every byte back</title>
+  <desc>A paper and vermilion sharing card with a folded .nzip archive, labeled model plus stream and 100% lossless.</desc>
+  <rect width="1200" height="630" fill="#f6f7fa"/>
+  <rect x="920" width="280" height="630" fill="#c5482b"/>
+  <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+    <rect x="64" y="58" width="46" height="46" rx="11" fill="#c5482b"/>
+    <path d="M78 66h13l8 8v24H78zM91 66v10h8M84 83h9M84 89h7" fill="none" stroke="#f6f7fa" stroke-width="2.4" stroke-linejoin="round"/>
+    <text x="125" y="93" fill="#232832" font-size="36" font-weight="700" letter-spacing="-1.2">Neuralzip</text>
+    <g fill="#232832" font-size="72" font-weight="700" letter-spacing="-2.8">
+      <text x="64" y="252">Neural compression.</text>
+      <text x="64" y="340">Every byte back.</text>
+    </g>
+    <text x="66" y="402" fill="#606673" font-size="27" letter-spacing="-.3">Encode. Decode. Keep the original.</text>
+    <path d="M64 501h792" stroke="#d8dce3" stroke-width="1.5"/>
+    <text x="64" y="546" fill="#232832" font-size="23" font-weight="500">Open source · Runs in your browser</text>
+    <text x="64" y="584" fill="#606673" font-size="21">neuralzip-web.vercel.app</text>
+    <g fill="#f6f7fa">
+      <text x="1060" y="87" text-anchor="middle" font-size="16" font-weight="600" letter-spacing="2.5">THE ARCHIVE</text>
+      <path d="M984 184h96l56 56v192H984z" fill="none" stroke="#f6f7fa" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M1080 184v56h56" fill="none" stroke="#f6f7fa" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M1011 272h67M1011 290h41" fill="none" stroke="#f6f7fa" stroke-opacity=".65" stroke-width="4"/>
+      <text x="1060" y="386" text-anchor="middle" font-size="42" font-weight="600" letter-spacing="-1">.nzip</text>
+      <text x="1060" y="483" text-anchor="middle" font-size="21">Model + stream</text>
+      <text x="1060" y="558" text-anchor="middle" font-size="24" font-weight="600">100% lossless</text>
+    </g>
+  </g>
+</svg>

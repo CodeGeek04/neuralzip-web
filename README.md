@@ -30,6 +30,8 @@ npm run preview
 
 For subdirectory hosting, build with `NEXT_PUBLIC_BASE_PATH=/neuralzip npm run build`; the same prefix applies to links, lazy chunks, nested workers, samples and downloads. Preview with the same environment variable. Rebuild without it for root hosting.
 
+Social sharing uses a static 1200 × 630 PNG at `public/social/neuralzip-card-v1.png`, with its editable source in `docs/social-card.svg`. Open Graph and X large-image metadata are included in the exported HTML. When hosting on a different domain, set `NEXT_PUBLIC_SITE_URL` to the public site origin before building so image URLs point to that deployment. The default is `https://neuralzip-web.vercel.app`.
+
 ## Test
 
 Install the Python package separately for interoperability tests:
