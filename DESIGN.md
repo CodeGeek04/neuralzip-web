@@ -14,11 +14,11 @@ Paper: oklch(98.5% 0.004 260). Raised surface: oklch(99.7% 0.002 260). Inset sur
 
 ## Typography
 
-Use the native system sans family for the application. Large introductory type at 48px on desktop and 34px on mobile. Body copy 16px. Controls 15–16px. Use a system mono family for filenames, bytes, commands and decoded text. Keep explanatory copy under 70 characters per line.
+Use the native system sans family for the application. Introductory type at 38px on desktop and 30px on mobile. Body copy 16px. Controls 15–16px. Use a system mono family for filenames, bytes, commands and decoded text. Keep explanatory copy under 70 characters per line.
 
 ## Layout and components
 
-An editorial masthead, compact introduction and a generous workbench. Encode and Decode form a segmented control. A source switch offers upload, pasted text and curated samples. Decode offers a book library and an optional live reader. Show progress inline, actual decoded chunks in the reader, then a verified receipt and download. Pause controls apply backpressure to decoding; previews remain bounded while downloads retain all bytes. Installation and technical details sit below the utility. Use borders to separate functional regions; avoid nested cards.
+An editorial masthead, a concise compression heading with one supporting line, and a generous workbench immediately below. Keep diagrams, slogans and repeated technical explanations out of the introduction. Encode and Decode form a segmented control. A source switch offers upload, pasted text and curated samples. Decode offers a book library and an optional live reader. Show progress inline, actual decoded chunks in the reader, then a verified receipt and download. Pause controls apply backpressure to decoding; previews remain bounded while downloads retain all bytes. Python installation sits below the utility; technical details live on the Quick start and Benchmarks pages. Use borders to separate functional regions; avoid nested cards.
 
 ## Interaction
 
