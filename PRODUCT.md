@@ -14,7 +14,7 @@ Neuralzip makes exact text compression approachable. Encoding produces one porta
 
 ## Brand Personality
 
-Clear, precise, quietly inventive. Friendly language, concrete results and truthful comparisons. Show the file, its size, the work happening and the verified result.
+Clear, precise, quietly inventive. Friendly language, concrete results and truthful comparisons. Show the file, its size, the work happening and the verified result. Files over 1 MB remain allowed, with device-dependent estimates and memory guidance. Never promise a fixed completion time or impose a total-job timeout.
 
 ## Anti-references
 

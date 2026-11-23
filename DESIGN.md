@@ -18,7 +18,7 @@ Use the native system sans family for the application. Large introductory type a
 
 ## Layout and components
 
-An editorial masthead, compact introduction and a generous workbench. Encode and Decode form a segmented control. The file drop zone is the main affordance; a sample provides an equally obvious starting point. Show progress inline, then a concise before/after receipt with a download action and a preview. Installation and technical details sit below the utility. Use borders to separate functional regions; avoid nested cards.
+An editorial masthead, compact introduction and a generous workbench. Encode and Decode form a segmented control. A source switch offers upload, pasted text and curated samples. Decode offers a book library and an optional live reader. Show progress inline, actual decoded chunks in the reader, then a verified receipt and download. Pause controls apply backpressure to decoding; previews remain bounded while downloads retain all bytes. Installation and technical details sit below the utility. Use borders to separate functional regions; avoid nested cards.
 
 ## Interaction
 

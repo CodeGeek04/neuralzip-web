@@ -48,8 +48,7 @@ data; the archive contains no executable code.
 
 ## Validation and limits
 
-Header length is bounded to 1 MiB. Containers are bounded to 160 MiB.
-Restored files are bounded to 16 MiB. Tensor
+Header length is bounded to 1 MiB. Python 0.3.1 bounds containers to 160 MiB and restored files to 16 MiB. The browser permits a larger output bound, subject to browser buffer capacity and the 24-bit chunk address space (at most 16,777,216 chunks). Browser jobs over 1 MB show guidance rather than a small fixed cutoff. Large browser archives can exceed Python 0.3.1’s supported output size. Tensor
 names, shapes, representations, offsets and aggregate parameter count are
 validated before model allocation. Streams must be contiguous, cover every chunk
 and consume the declared payload. The full restored length and SHA-256 must

@@ -373,6 +373,15 @@
     }
   }
 
+  // A resumable view of the same decoder, so browser watch mode can apply
+  // backpressure between chunks without changing arithmetic or model state.
+  function* decodeSegmentChunks(m, seg, streamBytes) {
+    const dec = new Decoder(streamBytes);
+    for (let c = seg.first; c < seg.first + seg.count; c++) {
+      yield { chunk: c, bytes: walkChunk(m, c, (j, cum) => dec.read(cum)) };
+    }
+  }
+
   // ---------------------------------------------------------------- SHA-256
   function sha256Hex(bytes) {
     const primes = [];
@@ -410,7 +419,7 @@
 
   const api = {
     KEY, KEY_LEN, AC_BITS, base64ToBytes, decodeBlobs, buildModel, step, writeChunk, decodeChunk, chunkLength,
-    encodeBook, encodeSegment, segmentPlan, decodeSegment, Encoder, Decoder, sha256Hex,
+    encodeBook, encodeSegment, segmentPlan, decodeSegment, decodeSegmentChunks, Encoder, Decoder, sha256Hex,
     math: { dexp, dlog, dsincos, dinvsqrt },
   };
   root.BookDecoder = api;

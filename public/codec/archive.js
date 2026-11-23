@@ -30,12 +30,12 @@
       return header;
     }
     const p = header.model, c = p?.config, m = p?.meta;
-    if (!c || !m || !integer(header.size, 1, 16 << 20)) fail("Invalid neural archive size.");
+    if (!c || !m || !integer(header.size, 1, maxOutput)) fail("Invalid neural archive size.");
     if (c.vocab_size !== 257 || !integer(c.n_layer, 1, 12) || !integer(c.d_model, 8, 512) ||
         !integer(c.n_head, 1, 16) || c.d_model % c.n_head || (c.d_model / c.n_head) % 2 ||
         !integer(c.d_ff, 8, 2048) || !integer(c.max_len, 8, 1024) || c.rope_theta !== 10000) fail("Unsupported model configuration.");
     if (!integer(m.chunk_len, 4, 1020) || c.max_len !== m.chunk_len + 4 || m.book_id !== 0 ||
-        m.total_len !== header.size || m.n_chunks !== Math.ceil(header.size / m.chunk_len) ||
+        m.total_len !== header.size || !integer(m.n_chunks, 1, 16777216) || m.n_chunks !== Math.ceil(header.size / m.chunk_len) ||
         m.sha256 !== header.sha256) fail("Inconsistent model metadata.");
     if (!p.blobs || !Array.isArray(p.tensors) || !Array.isArray(p.segments) || !p.segments.length ||
         p.segments.length > 256 || p.bits !== 20) fail("Invalid neural payload.");
@@ -92,16 +92,16 @@
     validate(header, payload.length, maxOutput);
     return { header, payload };
   }
-  function raw(header, payload) {
-    validate(header, payload.length);
+  function raw(header, payload, maxOutput = 16 << 20) {
+    validate(header, payload.length, maxOutput);
     const json = new TextEncoder().encode(JSON.stringify(header));
     if (json.length > MAX_HEADER) fail("Archive header is too large.");
     const out = new Uint8Array(12 + json.length + payload.length);
     out.set(MAGIC); new DataView(out.buffer).setUint32(8, json.length, true);
     out.set(json, 12); out.set(payload, 12 + json.length); return out;
   }
-  function neuralModel(header, payload) {
-    validate(header, payload.length);
+  function neuralModel(header, payload, maxOutput = 16 << 20) {
+    validate(header, payload.length, maxOutput);
     const p = header.model;
     const pkg = { config: p.config, meta: p.meta, tensors: p.tensors, fixes: [] };
     for (const [key, s] of Object.entries(p.blobs)) pkg[key] = base64(payload.subarray(s.offset, s.offset + s.length));

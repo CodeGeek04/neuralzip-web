@@ -1,0 +1,28 @@
+[
+  {
+    "id": "modest-proposal",
+    "title": "A Modest Proposal",
+    "author": "Jonathan Swift",
+    "archive": "samples/modest-proposal.nzip",
+    "text": "samples/modest-proposal.txt",
+    "sourceBytes": 19515,
+    "archiveBytes": 45276,
+    "chunks": 78,
+    "sha256": "69f0164ab1e1ac7535157eb0ba68f145c90942fe918e01d829d30ead33d10510",
+    "license": "Public domain",
+    "provenance": "Existing trained model, unchanged q8 weights; new lossless stream verified against original bytes."
+  },
+  {
+    "id": "yellow-wallpaper",
+    "title": "The Yellow Wallpaper",
+    "author": "Charlotte Perkins Gilman",
+    "archive": "samples/yellow-wallpaper.nzip",
+    "text": "samples/yellow-wallpaper.txt",
+    "sourceBytes": 31902,
+    "archiveBytes": 71615,
+    "chunks": 127,
+    "sha256": "6434ca7c7e62aa75c2c71d2d9729732ade90cd4dfc4d9dd6abfd22ffd329a183",
+    "license": "Public domain",
+    "provenance": "Existing trained model, unchanged q8 weights; new lossless stream verified against original bytes."
+  }
+]
