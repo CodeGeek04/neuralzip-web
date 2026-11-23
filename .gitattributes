@@ -1,0 +1,6 @@
+* text=auto eol=lf
+# Archive inputs and expected outputs must survive checkout byte-for-byte.
+*.txt -text
+*.nzip binary
+*.whl binary
+*.gz binary
