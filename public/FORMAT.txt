@@ -1,0 +1,57 @@
+# Neurzip archive format, version 1
+
+A `.nzip` file is a raw binary envelope:
+
+| Field | Encoding |
+| --- | --- |
+| Magic | Eight bytes, ASCII `NEURZIP1` |
+| Header length | Unsigned 32-bit little-endian integer |
+| Header | UTF-8 JSON of the declared byte length |
+| Payload | Remaining bytes |
+
+There is no outer conventional compressor. `format` is `neurzip/1` and `codec` must be `neural`. `name` is a safe portable basename, `size` the exact original length, and `sha256` its lowercase SHA-256 digest. Empty input has `model: null` and an empty payload; all nonempty archives contain model tensors and arithmetic-coded streams.
+
+SHA-256 checks restored integrity, not the author's identity. The archive contains model data, not executable code.
+
+## Neural header and payload
+
+`model.config` contains the transformer's vocabulary, layer count, width, heads,
+feed-forward width, maximum sequence length and RoPE base. The v1 decoder uses
+RoPE base 10000 and a 257-token byte vocabulary, including the key marker.
+
+`model.meta` contains `book_id` (zero), `chunk_len`, `total_len`, `n_chunks` and
+`sha256`. Chunks are addressed by `[256, index >> 16, (index >> 8) & 255, index &
+255]`. The maximum sequence length is the chunk length plus four.
+
+`model.tensors` describes named matrices and normalization vectors, with shapes,
+element counts and offsets. Representations are BF16 (`bf16`) or signed 4-/8-bit
+matrix weights (`q4`/`q8`) with one little-endian BF16 scale per row. For q4, the
+low nibble is first and the signed integer is `nibble - 8`.
+
+The payload contains the following contiguous regions:
+
+1. BF16 vectors or weights, indexed in `model.blobs.weights_b64`.
+2. Packed integer matrices, indexed in `model.blobs.qdata_b64`.
+3. BF16 row scales, indexed in `model.blobs.scales_b64`.
+4. Independent arithmetic-coded streams, indexed in `model.segments`.
+
+Despite the historical `_b64` names, these three regions are raw binary in the
+archive. Each location is `{offset, length}` in payload bytes. Tensor BF16 and
+scale offsets count 16-bit elements; matrix offsets count bytes. Segments also
+specify `first` and `count` in chunk units. They cover all chunks in order.
+
+`model.bits` is 20. Probability frequencies, arithmetic coding, weight unpacking
+and inference are defined by the bundled fixed-order JavaScript decoder. The
+same source runs in the browser and embedded V8 in Python. Trained weights are
+data; the archive contains no executable code.
+
+## Validation and limits
+
+Header length is bounded to 1 MiB. Containers are bounded to 160 MiB.
+Restored files are bounded to 16 MiB. Tensor
+names, shapes, representations, offsets and aggregate parameter count are
+validated before model allocation. Streams must be contiguous, cover every chunk
+and consume the declared payload. The full restored length and SHA-256 must
+match before output publication.
+
+The release container is separate from earlier experimental `LLCPB001` and `LCP20001` formats and the research Hugging Face folder format. Those require their historical decoders. Future releases must retain compatibility with the committed `.nzip` fixture.

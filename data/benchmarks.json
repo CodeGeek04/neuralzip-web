@@ -1,0 +1,24 @@
+{
+  "version": "neurzip/1",
+  "measurement_note": "These use completed research models, not the short browser training preset. Sizes include all model weights, stream bytes, metadata and checksum. Both archives were decoded and verified.",
+  "results": [
+    {
+      "title": "Alice in Wonderland",
+      "source_bytes": 151094,
+      "archive_bytes": 63048,
+      "ratio": 2.3964915619845195,
+      "sha256": "4e04ea77acf3b0215cae2089c977bc07526fc834597a1d463598d895354ba41d",
+      "archive": "samples/alice-neural.nzip",
+      "method": "model + arithmetic-coded stream; no outer compressor"
+    },
+    {
+      "title": "Five-book collection",
+      "source_bytes": 3120899,
+      "archive_bytes": 791134,
+      "ratio": 3.944842466636499,
+      "sha256": "b02c65fd40cd0a5f9541c3d58f1a06e0fa9b2153e3d463483aa434a2b0ad1642",
+      "archive": "samples/library-neural.nzip",
+      "method": "model + arithmetic-coded stream; no outer compressor"
+    }
+  ]
+}
