@@ -1,0 +1,54 @@
+{
+  "report_version": 1,
+  "measurement_date": "2026-11-24",
+  "measurement_note": "Fresh browser encodes. All archive sizes include model weights, stream, metadata and checksum. Every output was independently decoded and compared byte for byte. Timings are observations from GitHub Ubuntu with Chrome software WebGL (SwiftShader), not promises for other devices. Learning runs can produce different sizes.",
+  "baseline_commit": "b3f0694",
+  "encoder_commit": "30e928bc4205f411394f01d54899fe33ac3bc883",
+  "run_url": "https://github.com/CodeGeek04/neuralzip-web/actions/runs/45254400622",
+  "results": [
+    {
+      "title": "11 KiB Alice excerpt",
+      "source_bytes": 11264,
+      "previous_archive_bytes": 31422,
+      "archive_bytes": 10425,
+      "weights_bytes": 3658,
+      "stream_bytes": 4866,
+      "settings_bytes": 1901,
+      "ratio": 1.0804796163069543,
+      "encode_and_verify_seconds": 127.167,
+      "sha256": "8a39ed51effbb8f838d97b74dbccb1370a86a0a3c469219a8590035f228d4b2c",
+      "exact_bytes_verified": true,
+      "config": {
+        "vocab_size": 257,
+        "n_layer": 1,
+        "d_model": 8,
+        "n_head": 1,
+        "d_ff": 24,
+        "max_len": 64,
+        "rope_theta": 10000
+      }
+    },
+    {
+      "title": "Alice in Wonderland (complete)",
+      "source_bytes": 151094,
+      "previous_archive_bytes": 83217,
+      "archive_bytes": 71353,
+      "weights_bytes": 23146,
+      "stream_bytes": 45014,
+      "settings_bytes": 3193,
+      "ratio": 2.1175563746443737,
+      "encode_and_verify_seconds": 469.366,
+      "sha256": "4e04ea77acf3b0215cae2089c977bc07526fc834597a1d463598d895354ba41d",
+      "exact_bytes_verified": true,
+      "config": {
+        "vocab_size": 257,
+        "n_layer": 2,
+        "d_model": 24,
+        "n_head": 1,
+        "d_ff": 72,
+        "max_len": 64,
+        "rope_theta": 10000
+      }
+    }
+  ]
+}
