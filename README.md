@@ -22,7 +22,7 @@ npm run preview
 
 ## Browser learning
 
-Model capacity adapts to input size so short files do not carry a book-sized model. Book-sized inputs use the Python CLI's four-layer architecture and 252-byte context. A shuffled sampler visits every chunk in each pass. Convergence is measured across up to 64 chunks spanning the file, with complete coverage of files containing at most 64 chunks. Training includes a refinement phase using the q8 matrices and bf16 values that are actually saved, and checkpoints are selected by their stored-weight prediction cost. Neither phase uses an elapsed-time cutoff. The archive format and exact reconstruction remain unchanged. Small or difficult inputs can still grow.
+Model capacity adapts to input size so short files do not carry a book-sized model. The browser retains its lightweight 60-byte context; it does not emulate the CLI's larger four-layer preset. A shuffled sampler visits every chunk in each completed pass. Convergence is measured across up to 64 chunks spanning the file, using the q8 matrices and bf16 values that are actually saved. Both learning and saved-weight refinement must see a minimum number of training chunks before a plateau can finish the phase. Learning continues while estimated model-plus-stream size improves materially, without an elapsed-time cutoff. Actual encoding and verification always cover every original byte. Small or difficult inputs can still grow.
 
 The dedicated `Compare fresh browser compression` workflow compares the released trainer against the current trainer on an 11 KiB Alice excerpt and complete Alice. It measures the entire archive and independently decodes every byte. These longer learning runs execute on GitHub's runner, separately from ordinary UI tests.
 

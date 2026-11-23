@@ -13,7 +13,9 @@ export function roundEven(x) {
 }
 
 function roundedBfloat(x) {
-  const quantum = tf.pow(2, x.abs().maximum(2 ** -126).log().div(Math.LN2).floor().sub(7));
+  // Avoid a subnormal quantum for zero: some WebGL drivers flush it to zero.
+  const magnitude = tf.where(x.equal(0), tf.onesLike(x), x.abs());
+  const quantum = tf.pow(2, magnitude.maximum(2 ** -126).log().div(Math.LN2).floor().sub(7));
   return x.div(quantum).round().mul(quantum);
 }
 

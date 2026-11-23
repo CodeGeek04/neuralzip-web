@@ -67,7 +67,9 @@ export async function train(bytes, onProgress) {
   let opt = tf.train.adam(0.003, 0.9, 0.95);
   const started = performance.now();
   let steps = 0, lossValue = 8, last = -1000, bestWeights = null, bestScore = Infinity;
-  let convergence = new TrainingConvergence(), quantized = false, phaseStartSteps = 0, phaseStartEpochs = 0;
+  const fixedBytes = Object.values(vars).reduce((size, value) => size + (value.rank === 2 ? value.size + value.shape[0] * 2 : value.size * 2), 0);
+  const policy = { inputBytes: bytes.length, fixedBytes, requiredChunks: Math.min(2 * nChunks, 4096) };
+  let convergence = new TrainingConvergence(policy), quantized = false, phaseStartSteps = 0, phaseStartSeen = 0, seenChunks = 0;
   let finished = false;
   const makeBatch = chunks => {
     const inputs = new Int32Array(chunks.length * T), targets = new Int32Array(chunks.length * T), weights = new Float32Array(chunks.length * T);
@@ -95,6 +97,7 @@ export async function train(bytes, onProgress) {
   try {
     do {
       const sample = makeBatch(sampler.next(batch));
+      seenChunks += sample.count;
       const loss = tf.tidy(() => {
         const { value, grads } = tf.variableGrads(() => objective(sample, quantized), Object.values(vars));
         const norm = tf.addN(Object.values(grads).map(gradient => gradient.square().sum())).sqrt().maximum(1);
@@ -110,7 +113,7 @@ export async function train(bytes, onProgress) {
           score.dispose();
         }
         const measured = totalLoss / totalTokens / Math.LN2;
-        const status = convergence.observe(measured, { steps: steps - phaseStartSteps, epochs: sampler.epochs - phaseStartEpochs });
+        const status = convergence.observe(measured, { steps: steps - phaseStartSteps, seenChunks: seenChunks - phaseStartSeen });
         if (measured < bestScore) {
           bestScore = measured;
           if (bestWeights) Object.values(bestWeights).forEach(tensor => tensor.dispose());
@@ -119,8 +122,8 @@ export async function train(bytes, onProgress) {
         if (status.done && !quantized) {
           // Refine using the stored weights, as the Python trainer does. The
           // phase transition follows convergence rather than a time budget.
-          quantized = true; phaseStartSteps = steps; phaseStartEpochs = sampler.epochs;
-          convergence = new TrainingConvergence({ minSteps: 128, patience: 8, minDelta: 0.005 });
+          quantized = true; phaseStartSteps = steps; phaseStartSeen = seenChunks;
+          convergence = new TrainingConvergence({ ...policy, minSteps: 128 });
           opt.dispose(); opt = tf.train.adam(0.0005, 0.9, 0.95);
         } else finished = status.done;
       }

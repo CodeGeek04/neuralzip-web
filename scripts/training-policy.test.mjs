@@ -1,30 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ChunkSampler, evaluationChunks, trainingConfig, TrainingConvergence } from '../lib/training-policy.js';
+const makePolicy = overrides => new TrainingConvergence({ inputBytes: 11264, fixedBytes: 3658, requiredChunks: 90, ...overrides });
 
-test('a sample plateau cannot stop training before the input has been covered', () => {
-  const policy = new TrainingConvergence();
-  for (let i = 1; i <= 20; i++) assert.equal(policy.observe(7.5, { steps: i * 32, epochs: 0 }).done, false);
-  assert.equal(policy.observe(7.5, { steps: 672, epochs: 2 }).done, true);
+test('a sample plateau cannot stop training before minimum training coverage', () => {
+  const policy = makePolicy();
+  for (let i = 1; i <= 20; i++) assert.equal(policy.observe(7.5, { steps: i * 32, seenChunks: 0 }).done, false);
+  assert.equal(policy.observe(7.5, { steps: 672, seenChunks: 90 }).done, true);
 });
 test('memorizing a sample cannot stop the first few updates', () => {
-  const policy = new TrainingConvergence();
-  assert.equal(policy.observe(0, { steps: 32, epochs: 10 }).done, false);
-  assert.equal(policy.observe(0, { steps: 256, epochs: 10 }).done, true);
+  const policy = makePolicy();
+  assert.equal(policy.observe(0, { steps: 32, seenChunks: 1000 }).done, false);
+  assert.equal(policy.observe(0, { steps: 256, seenChunks: 1000 }).done, true);
 });
 test('keeps learning while improvements continue, without a wall-clock cutoff', () => {
-  const policy = new TrainingConvergence();
-  for (let i = 0; i < 100; i++) assert.equal(policy.observe(8 - i * 0.05, { steps: (i + 1) * 32, epochs: 10 }).done, false);
+  const policy = makePolicy();
+  for (let i = 0; i < 100; i++) assert.equal(policy.observe(8 - i * 0.05, { steps: (i + 1) * 32, seenChunks: 1000 }).done, false);
 });
 test('tracks the best checkpoint rather than a worse final update', () => {
-  const policy = new TrainingConvergence();
-  assert.equal(policy.observe(4, { steps: 32, epochs: 2 }).improved, true);
-  const later = policy.observe(4.5, { steps: 64, epochs: 2 });
+  const policy = makePolicy();
+  assert.equal(policy.observe(4, { steps: 32, seenChunks: 90 }).improved, true);
+  const later = policy.observe(4.5, { steps: 64, seenChunks: 90 });
   assert.equal(later.improved, false);
   assert.equal(later.best, 4);
 });
 test('rejects non-finite learning results instead of emitting invalid weights', () => {
-  for (const value of [NaN, Infinity, -1]) assert.throws(() => new TrainingConvergence().observe(value, { steps: 32, epochs: 2 }), /unstable/);
+  for (const value of [NaN, Infinity, -1]) assert.throws(() => makePolicy().observe(value, { steps: 32, seenChunks: 90 }), /unstable/);
 });
 
 test('training visits every chunk exactly once per pass, including the partial batch', () => {
@@ -44,10 +45,17 @@ test('evaluation spans a book and includes all chunks of short files', () => {
   assert.equal(new Set(sample).size, 64);
   assert.equal(sample[0], 0); assert.equal(sample.at(-1), 599);
 });
-test('book inputs match the CLI architecture while short inputs use a smaller model', () => {
+test('short inputs use smaller models while books keep the lightweight browser architecture', () => {
   const book = trainingConfig(151094), short = trainingConfig(11264);
-  assert.deepEqual(book, { vocab_size: 257, n_layer: 4, d_model: 24, n_head: 1, d_ff: 72, max_len: 256, rope_theta: 10000 });
+  assert.deepEqual(book, { vocab_size: 257, n_layer: 2, d_model: 24, n_head: 1, d_ff: 72, max_len: 64, rope_theta: 10000 });
   assert.ok(short.d_model < book.d_model && short.n_layer < book.n_layer);
-  assert.equal(trainingConfig(6538002).d_model, 48);
+  assert.equal(trainingConfig(6538002).d_model, 24);
   assert.equal(trainingConfig(1).max_len, 8);
+});
+
+
+test('convergence measures archive-size gains rather than chasing a few bytes', () => {
+  const policy = makePolicy({ minSteps: 0 });
+  for (const value of [3.40,3.39,3.38,3.38,3.38]) assert.equal(policy.observe(value, { steps: 0, seenChunks: 90 }).done, false);
+  assert.equal(policy.observe(3.38, { steps: 0, seenChunks: 90 }).done, true);
 });
