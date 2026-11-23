@@ -35,9 +35,9 @@ jobs:
           baseline_dir="${RUNNER_TEMP}/neuralzip-before"
           mkdir -p "$baseline_dir"
           git archive b3f0694 | tar -x -C "$baseline_dir"
-          ln -s "$GITHUB_WORKSPACE/node_modules" "$baseline_dir/node_modules"
           cp tests/compression.spec.js "$baseline_dir/tests/compression.spec.js"
           cd "$baseline_dir"
+          npm ci --prefer-offline
           npm run build
           npx playwright test tests/compression.spec.js
       - name: Verify improved compression and exact restoration

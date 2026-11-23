@@ -21,7 +21,7 @@ test.describe('fresh browser compression', () => {
   for (const [name, limit] of [['alice-11kb', 11264], ['alice-complete', Infinity]]) {
     test(`${name} includes the model and restores every original byte`, async ({ page }, info) => {
       test.setTimeout(30 * 60 * 1000);
-      const input = (await readFile(path.join(root, 'public/samples/alice.txt'))).subarray(0, limit);
+      const input = (await readFile(path.join(root, 'public/samples/alice.txt'))).subarray(0, Number.isFinite(limit) ? limit : undefined);
       await page.goto('/');
       const timer = setInterval(async () => {
         try { console.log(name, await page.evaluate(() => window.compressionProgress || 'starting')); } catch { /* closed page */ }
