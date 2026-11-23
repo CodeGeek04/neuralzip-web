@@ -131,7 +131,9 @@ async function run({ action, file, buffer, name, watch = false }) {
     weightsBytes = Object.values(manifest.blobs).reduce((n, b) => n + b.length, 0);
     streamBytes = manifest.segments.reduce((n, b) => n + b.length, 0);
     const restored = await restoreNeural(neuralHeader, payload, 'verifying');
-    if (await digest(restored) !== header.sha256) throw new Error('Verification failed. No archive was saved.');
+    if (restored.length !== input.length || !restored.every((byte, index) => byte === input[index]) || await digest(restored) !== header.sha256) {
+      throw new Error('Verification failed. No archive was saved.');
+    }
   }
   send({ type: 'result', action, name: header.name + '.nzip', method: 'neural', originalBytes: input.length,
     archiveBytes: archive.length, weightsBytes, streamBytes, settingsBytes: archive.length - weightsBytes - streamBytes,
