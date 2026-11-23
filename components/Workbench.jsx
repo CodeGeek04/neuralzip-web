@@ -26,8 +26,9 @@ function ProgressPanel({ event, started, watched, paused }) {
     details.push(`~${clock((now - phase.current.at) / 1000 * (1 - event.progress) / event.progress)} left in this stage`);
   }
   if (paused) details.push('Paused');
+  const title = event.stage === 'training' && event.phase === 'refining' ? 'Refining the model' : labels[event.stage] || 'Working on your file';
   return <div className={`output-progress${watched ? ' compact-progress' : ''}`} id="output-progress">
-    <div className="progress-meta"><strong id="progress-title">{paused ? 'Reconstruction paused' : labels[event.stage] || 'Working on your file'}</strong><span>{determinate ? `${Math.round(event.progress * 100)}%` : ''}</span></div>
+    <div className="progress-meta"><strong id="progress-title">{paused ? 'Reconstruction paused' : title}</strong><span>{determinate ? `${Math.round(event.progress * 100)}%` : ''}</span></div>
     <progress max="100" value={determinate ? event.progress * 100 : undefined} aria-label={`${event.stage === 'decoding' ? 'Decoding' : 'Encoding'} progress`}/>
     <p id="progress-detail">{details.join(' · ')}</p>
   </div>;

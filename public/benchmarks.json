@@ -1,6 +1,6 @@
 {
   "version": "neurzip/1",
-  "measurement_note": "These use completed research models, not the short browser training preset. Sizes include all model weights, stream bytes, metadata and checksum. Both archives were decoded and verified.",
+  "measurement_note": "These use previously trained research checkpoints, rather than fresh encodes with the current browser trainer. Sizes include all model weights, stream bytes, metadata and checksum. Both archives were decoded and verified.",
   "results": [
     {
       "title": "Alice in Wonderland",

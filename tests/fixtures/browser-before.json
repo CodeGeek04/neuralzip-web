@@ -1,0 +1,62 @@
+[
+  {
+    "name": "alice-11kb",
+    "originalBytes": 11264,
+    "archiveBytes": 31422,
+    "weightsBytes": 23146,
+    "streamBytes": 3614,
+    "settingsBytes": 4662,
+    "ratio": 0.35847495385398764,
+    "seconds": 107.8219,
+    "config": {
+      "vocab_size": 257,
+      "n_layer": 2,
+      "d_model": 24,
+      "n_head": 1,
+      "d_ff": 72,
+      "max_len": 64,
+      "rope_theta": 10000
+    },
+    "training": {
+      "type": "progress",
+      "stage": "training",
+      "elapsedSeconds": 106.11379999999998,
+      "steps": 752,
+      "bitsPerByte": 2.7005988510094596
+    },
+    "exactBytesVerified": true,
+    "sha256": "8a39ed51effbb8f838d97b74dbccb1370a86a0a3c469219a8590035f228d4b2c",
+    "sourceCommit": "b3f0694",
+    "sourceRunUrl": "https://github.com/CodeGeek04/neuralzip-web/actions/runs/45247829351"
+  },
+  {
+    "name": "alice-complete",
+    "originalBytes": 151094,
+    "archiveBytes": 83217,
+    "weightsBytes": 23146,
+    "streamBytes": 55301,
+    "settingsBytes": 4770,
+    "ratio": 1.8156626650804524,
+    "seconds": 118.62829999999998,
+    "config": {
+      "vocab_size": 257,
+      "n_layer": 2,
+      "d_model": 24,
+      "n_head": 1,
+      "d_ff": 72,
+      "max_len": 64,
+      "rope_theta": 10000
+    },
+    "training": {
+      "type": "progress",
+      "stage": "training",
+      "elapsedSeconds": 106.97529999999999,
+      "steps": 768,
+      "bitsPerByte": 3.0826314806076547
+    },
+    "exactBytesVerified": true,
+    "sha256": "4e04ea77acf3b0215cae2089c977bc07526fc834597a1d463598d895354ba41d",
+    "sourceCommit": "b3f0694",
+    "sourceRunUrl": "https://github.com/CodeGeek04/neuralzip-web/actions/runs/45247829351"
+  }
+]

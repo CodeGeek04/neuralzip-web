@@ -11,7 +11,7 @@
     "build": "node scripts/build-workers.mjs && next build",
     "preview": "node scripts/serve.mjs",
     "test": "playwright test",
-    "test:policy": "node --test scripts/training-policy.test.mjs"
+    "test:policy": "node --test scripts/training-policy.test.mjs scripts/training-math.test.mjs"
   },
   "dependencies": {
     "@tensorflow/tfjs": "4.22.0",

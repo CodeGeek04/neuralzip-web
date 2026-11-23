@@ -1,15 +1,7 @@
 // Loaded on demand inside a worker. Training stays on the visitor's device.
 import * as tf from '@tensorflow/tfjs';
-import { CHECK_EVERY, TrainingConvergence } from '../lib/training-policy';
-
-const D = 24, H = 1, F = 72, LAYERS = 2, CHUNK = 60, T = CHUNK + 3;
-const bits = new DataView(new ArrayBuffer(4));
-function bf16(x) {
-  bits.setFloat32(0, x, true);
-  const n = bits.getUint32(0, true);
-  return ((n + 0x7fff + ((n >>> 16) & 1)) >>> 16) & 65535;
-}
-function bfValue(x) { bits.setUint32(0, x << 16, true); return bits.getFloat32(0, true); }
+import { CHECK_EVERY, ChunkSampler, evaluationChunks, trainingConfig, TrainingConvergence } from '../lib/training-policy.js';
+import { archiveWeights, bf16, bfValue, roundEven } from './training-math.js';
 const concat = parts => {
   const out = new Uint8Array(parts.reduce((n, x) => n + x.length, 0));
   let pos = 0; for (const x of parts) { out.set(x, pos); pos += x.length; } return out;
@@ -19,6 +11,9 @@ export async function train(bytes, onProgress) {
   onProgress({ stage: 'preparing', progress: 0 });
   try { await tf.setBackend('webgl'); } catch { await tf.setBackend('cpu'); }
   await tf.ready();
+  const config = trainingConfig(bytes.length);
+  const { d_model: D, n_head: H, d_ff: F, n_layer: LAYERS } = config;
+  const CHUNK = config.max_len - 4, T = CHUNK + 3;
   const vars = {}, tensors = [], qParts = [], scaleParts = [], bfParts = [];
   let seed = 1;
   const variable = (name, shape, norm = false, residual = false) => {
@@ -47,12 +42,13 @@ export async function train(bytes, onProgress) {
     const [a, b] = tf.split(x, 2, -1);
     return tf.concat([a.mul(cosine).sub(b.mul(sine)), a.mul(sine).add(b.mul(cosine))], -1);
   };
-  const forward = x => {
+  const forward = (x, storedWeights) => {
     const batch = x.shape[0];
-    let h = tf.gather(vars['embed.weight'], x);
+    const weights = storedWeights ? Object.fromEntries(Object.entries(vars).map(([name, value]) => [name, archiveWeights(value)])) : vars;
+    let h = tf.gather(weights['embed.weight'], x);
     const heads = v => v.reshape([batch, T, H, D / H]).transpose([0, 2, 1, 3]);
     for (let i = 0; i < LAYERS; i++) {
-      const p = `blocks.${i}.`, get = n => vars[p + n + '.weight'];
+      const p = `blocks.${i}.`, get = n => weights[p + n + '.weight'];
       const n = rms(h, get('attn_norm'));
       const q = rotary(rms(heads(linear(n, get('attn.q'))), get('attn.q_norm')));
       const k = rotary(rms(heads(linear(n, get('attn.k'))), get('attn.k_norm')));
@@ -64,54 +60,77 @@ export async function train(bytes, onProgress) {
       const g = linear(normalized, get('mlp.gate'));
       h = h.add(linear(g.mul(tf.sigmoid(g)).mul(linear(normalized, get('mlp.up'))), get('mlp.down')));
     }
-    return linear(rms(h, vars['norm.weight']), vars['embed.weight']);
+    return linear(rms(h, weights['norm.weight']), weights['embed.weight']);
   };
   const nChunks = Math.ceil(bytes.length / CHUNK), batch = Math.min(8, nChunks);
-  const opt = tf.train.adam(0.003), started = performance.now();
-  let steps = 0, lossValue = 8, last = -1000, bestWeights = null;
-  const convergence = new TrainingConvergence();
+  const sampler = new ChunkSampler(nChunks), checks = evaluationChunks(nChunks);
+  let opt = tf.train.adam(0.003, 0.9, 0.95);
+  const started = performance.now();
+  let steps = 0, lossValue = 8, last = -1000, bestWeights = null, bestScore = Infinity;
+  const fixedBytes = Object.values(vars).reduce((size, value) => size + (value.rank === 2 ? value.size + value.shape[0] * 2 : value.size * 2), 0);
+  const policy = { inputBytes: bytes.length, fixedBytes, requiredChunks: Math.min(2 * nChunks, 4096) };
+  let convergence = new TrainingConvergence(policy), quantized = false, phaseStartSteps = 0, phaseStartSeen = 0, seenChunks = 0;
   let finished = false;
+  const makeBatch = chunks => {
+    const inputs = new Int32Array(chunks.length * T), targets = new Int32Array(chunks.length * T), weights = new Float32Array(chunks.length * T);
+    let tokenCount = 0;
+    for (let b = 0; b < chunks.length; b++) {
+      const c = chunks[b], length = Math.min(CHUNK, bytes.length - c * CHUNK);
+      inputs.set([256, c >>> 16, (c >>> 8) & 255, c & 255], b * T);
+      for (let j = 0; j < length; j++) {
+        targets[b * T + 3 + j] = bytes[c * CHUNK + j]; weights[b * T + 3 + j] = 1;
+        if (j < length - 1) inputs[b * T + 4 + j] = bytes[c * CHUNK + j];
+      }
+      tokenCount += length;
+    }
+    return { inputs, targets, weights, tokenCount, count: chunks.length };
+  };
+  const objective = (sample, storedWeights) => tf.tidy(() => {
+    const x = tf.tensor2d(sample.inputs, [sample.count, T], 'int32');
+    // The decoder codes 256 byte symbols. KEY is an input marker, never an output.
+    const logits = forward(x, storedWeights).reshape([-1, 257]).slice([0, 0], [-1, 256]);
+    const labels = tf.oneHot(tf.tensor1d(sample.targets, 'int32'), 256);
+    return tf.losses.softmaxCrossEntropy(labels, logits, tf.tensor1d(sample.weights));
+  });
+  const evaluation = [];
+  for (let i = 0; i < checks.length; i += batch) evaluation.push(makeBatch(checks.slice(i, i + batch)));
   try {
     do {
-      const inputs = new Int32Array(batch * T), targets = new Int32Array(batch * T), weights = new Float32Array(batch * T);
-      for (let b = 0; b < batch; b++) {
-        const c = Math.floor(Math.random() * nChunks), length = Math.min(CHUNK, bytes.length - c * CHUNK);
-        const key = [256, c >>> 16, (c >>> 8) & 255, c & 255];
-        inputs.set(key, b * T);
-        for (let j = 0; j < length; j++) {
-          targets[b * T + 3 + j] = bytes[c * CHUNK + j]; weights[b * T + 3 + j] = 1;
-          if (j < length - 1) inputs[b * T + 4 + j] = bytes[c * CHUNK + j];
-        }
-      }
-      const objective = (sampleInputs, sampleTargets, sampleWeights) => tf.tidy(() => {
-        const x = tf.tensor2d(sampleInputs, [batch, T], 'int32');
-        const labels = tf.oneHot(tf.tensor1d(sampleTargets, 'int32'), 257);
-        return tf.losses.softmaxCrossEntropy(labels, forward(x).reshape([-1, 257]), tf.tensor1d(sampleWeights));
+      const sample = makeBatch(sampler.next(batch));
+      seenChunks += sample.count;
+      const loss = tf.tidy(() => {
+        const { value, grads } = tf.variableGrads(() => objective(sample, quantized), Object.values(vars));
+        const norm = tf.addN(Object.values(grads).map(gradient => gradient.square().sum())).sqrt().maximum(1);
+        opt.applyGradients(Object.fromEntries(Object.entries(grads).map(([name, gradient]) => [name, gradient.div(norm)])));
+        return value;
       });
-      const loss = opt.minimize(() => objective(inputs, targets, weights), true, Object.values(vars));
       lossValue = (await loss.data())[0] / Math.LN2; loss.dispose(); steps++;
       if (steps % CHECK_EVERY === 0) {
-        const fixedInputs = new Int32Array(batch * T), fixedTargets = new Int32Array(batch * T), fixedWeights = new Float32Array(batch * T);
-        for (let b = 0; b < batch; b++) {
-          const c = Math.floor(b * nChunks / batch), length = Math.min(CHUNK, bytes.length - c * CHUNK);
-          fixedInputs.set([256, c >>> 16, (c >>> 8) & 255, c & 255], b * T);
-          for (let j = 0; j < length; j++) {
-            fixedTargets[b * T + 3 + j] = bytes[c * CHUNK + j]; fixedWeights[b * T + 3 + j] = 1;
-            if (j < length - 1) fixedInputs[b * T + 4 + j] = bytes[c * CHUNK + j];
-          }
+        let totalLoss = 0, totalTokens = 0;
+        for (const sample of evaluation) {
+          const score = objective(sample, true);
+          totalLoss += (await score.data())[0] * sample.tokenCount; totalTokens += sample.tokenCount;
+          score.dispose();
         }
-        const score = objective(fixedInputs, fixedTargets, fixedWeights);
-        const measured = (await score.data())[0] / Math.LN2; score.dispose();
-        const status = convergence.observe(measured);
-        if (status.improved) {
+        const measured = totalLoss / totalTokens / Math.LN2;
+        const status = convergence.observe(measured, { steps: steps - phaseStartSteps, seenChunks: seenChunks - phaseStartSeen });
+        if (measured < bestScore) {
+          bestScore = measured;
           if (bestWeights) Object.values(bestWeights).forEach(tensor => tensor.dispose());
           bestWeights = Object.fromEntries(Object.entries(vars).map(([name, value]) => [name, value.clone()]));
         }
-        finished = status.done;
+        if (status.done && !quantized) {
+          // Refine using the stored weights, as the Python trainer does. The
+          // phase transition follows convergence rather than a time budget.
+          quantized = true; phaseStartSteps = steps; phaseStartSeen = seenChunks;
+          convergence = new TrainingConvergence({ ...policy, minSteps: 128 });
+          opt.dispose(); opt = tf.train.adam(0.0005, 0.9, 0.95);
+        } else finished = status.done;
       }
       const elapsed = (performance.now() - started) / 1000;
       if (elapsed - last > 0.4 || finished) {
-        onProgress({ stage: 'training', elapsedSeconds: elapsed, steps, bitsPerByte: lossValue });
+        onProgress({ stage: 'training', elapsedSeconds: elapsed, steps, epochs: sampler.epochs,
+          phase: quantized ? 'refining' : 'learning', bitsPerByte: lossValue, storedBitsPerByte: bestScore });
         last = elapsed;
       }
       await tf.nextFrame();
@@ -131,7 +150,7 @@ export async function train(bytes, onProgress) {
           for (let c = 0; c < shape[1]; c++) max = Math.max(max, Math.abs(data[r * shape[1] + c]));
           const scaleBits = bf16(max / 127), scale = bfValue(scaleBits);
           view.setUint16(r * 2, scaleBits, true);
-          for (let c = 0; c < shape[1]; c++) q[r * shape[1] + c] = Math.max(-127, Math.min(127, Math.round(data[r * shape[1] + c] / scale))) & 255;
+          for (let c = 0; c < shape[1]; c++) q[r * shape[1] + c] = Math.max(-127, Math.min(127, roundEven(data[r * shape[1] + c] / scale))) & 255;
         }
         qParts.push(q); scaleParts.push(scales);
         tensors.push({ name, kind: 'q8', shape, numel, q_offset: qOffset, scale_offset: scaleOffset });
@@ -139,7 +158,7 @@ export async function train(bytes, onProgress) {
       }
     }
     const b64 = globalThis.LCPArchive.base64;
-    return { config: { vocab_size: 257, n_layer: LAYERS, d_model: D, n_head: H, d_ff: F, max_len: CHUNK + 4, rope_theta: 10000 },
+    return { config,
       meta: { book_id: 0, chunk_len: CHUNK, n_chunks: nChunks, total_len: bytes.length, sha256: '' },
       tensors, fixes: [], weights_b64: b64(concat(bfParts)), qdata_b64: b64(concat(qParts)), scales_b64: b64(concat(scaleParts)) };
   } finally {

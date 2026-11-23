@@ -1,0 +1,99 @@
+name: Compare fresh browser compression
+on:
+  push:
+    paths:
+      - 'src/neural.js'
+      - 'src/training-math.js'
+      - 'src/worker.js'
+      - 'lib/training-policy.js'
+      - 'tests/compression.spec.js'
+      - 'tests/training-math.spec.js'
+      - 'tests/fixtures/browser-before.json'
+      - '.github/workflows/compression.yml'
+  workflow_dispatch:
+    inputs:
+      measure_baseline:
+        description: 'Re-measure the released trainer instead of using its recorded reference'
+        default: false
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: compression-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  compression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NEURALZIP_COMPRESSION_CHECKS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chrome
+      - name: Load measured reference
+        if: inputs.measure_baseline != true
+        run: cp tests/fixtures/browser-before.json "${RUNNER_TEMP}/browser-before.json"
+      - name: Measure the released browser trainer
+        if: inputs.measure_baseline == true
+        env:
+          NEURALZIP_BASELINE: '1'
+          NEURALZIP_COMPRESSION_REPORT: ${{ runner.temp }}/browser-before.json
+        run: |
+          baseline_dir="${RUNNER_TEMP}/neuralzip-before"
+          mkdir -p "$baseline_dir"
+          git archive b3f0694 | tar -x -C "$baseline_dir"
+          cp tests/compression.spec.js "$baseline_dir/tests/compression.spec.js"
+          cd "$baseline_dir"
+          npm ci --prefer-offline
+          npm run build
+          npx playwright test tests/compression.spec.js
+      - name: Build and check training math
+        run: |
+          npm run test:policy
+          npm run build
+          npx playwright test tests/training-math.spec.js
+      - name: Verify short-file compression and exact restoration
+        env:
+          NEURALZIP_COMPRESSION_REPORT: ${{ runner.temp }}/browser-short.json
+          NEURALZIP_BASELINE_REPORT: ${{ runner.temp }}/browser-before.json
+        run: |
+          npx playwright test tests/compression.spec.js --grep alice-11kb
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-short-file-result
+          path: |
+            ${{ runner.temp }}/browser-short.json
+            test-results/
+      - name: Verify complete-book compression and exact restoration
+        env:
+          NEURALZIP_COMPRESSION_REPORT: ${{ runner.temp }}/browser-book.json
+          NEURALZIP_BASELINE_REPORT: ${{ runner.temp }}/browser-before.json
+        run: npx playwright test tests/compression.spec.js --grep alice-complete
+      - name: Combine measurements
+        env:
+          REPORT_DIRECTORY: ${{ runner.temp }}
+        run: |
+          node --input-type=module - <<'JS'
+          import { readFile, writeFile } from 'node:fs/promises';
+          const directory = process.env.REPORT_DIRECTORY;
+          const results = (await Promise.all(['browser-short.json','browser-book.json'].map(async name => JSON.parse(await readFile(directory + '/' + name, 'utf8'))))).flat();
+          await writeFile(directory + '/browser-after.json', JSON.stringify(results, null, 2) + '\n');
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-compression-comparison
+          path: |
+            ${{ runner.temp }}/browser-before.json
+            ${{ runner.temp }}/browser-after.json
+            ${{ runner.temp }}/browser-short.json
+            ${{ runner.temp }}/browser-book.json
+            test-results/

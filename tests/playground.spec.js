@@ -94,6 +94,11 @@ test('pasted UTF-8 byte counts and large-file guidance impose no 1 MB cutoff', a
 test('encoding samples and multiple book samples are selectable', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Samples', exact: true }).click();
+  await page.getByRole('button', { name: /Alice in Wonderland/ }).click();
+  await expect(page.locator('#file-name')).toHaveText('alice.txt');
+  await expect(page.locator('.selected-file')).toContainText('151.1 KB');
+  await page.getByRole('button', { name: /Alice opening excerpt/ }).click();
+  await expect(page.locator('#file-name')).toHaveText('alice-excerpt.txt');
   await page.getByRole('button', { name: /Structured logs/ }).click();
   await expect(page.locator('#file-name')).toHaveText('events.jsonl');
   await expect(page.getByRole('button', { name: 'Encode file', exact: true })).toBeEnabled();
